@@ -1,16 +1,13 @@
-const express = require('express');
+const express = require("express");
 const app = express();
 const cors = require("cors");
-require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+require("dotenv").config();
+const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
-
 
 // middlewere is here
 app.use(cors());
 app.use(express.json());
-
-
 
 // MongoDB connection from here
 //................................
@@ -23,7 +20,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -31,56 +28,55 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-
     // My activity from here
 
-    const FrameFusion = client.db('FrameFusion');
-    const allusers = FrameFusion.collection('allusers');
-
+    const FrameFusion = client.db("FrameFusion");
+    const allusers = FrameFusion.collection("allusers");
 
     // Route from here
-    
-    //Create new user function is here
-    app.post('/createnewuser',async(req,res)=>{
-        try {
-            const newUser = req.body;
-            const result = await allusers.insertOne(newUser);
-            res.send(result);
-        } catch (error) {
-           console.log(`Create new user route working failed!`) 
-        }
+
+    //Get all instractor route is here
+    app.get("/allinstractor", async(req, res) => {
+      try {
+        const result = await allusers.find({role: "instractor"}).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log("all instractor route is not working");
+      }
     });
 
+    //Create new user function is here
+    app.post("/createnewuser", async (req, res) => {
+      try {
+        const newUser = req.body;
+        const result = await allusers.insertOne(newUser);
+        res.send(result);
+      } catch (error) {
+        console.log(`Create new user route working failed!`);
+      }
+    });
 
     // create new user route by google
-    app.post('/createnewuserbygoogle',async(req,res)=>{
+    app.post("/createnewuserbygoogle", async (req, res) => {
       try {
-          const newUser = req.body;
-          const userEmail = newUser.email;
-          const isAvilable = await allusers.findOne({email: userEmail});
-          if(isAvilable){
-            return res.send({avilable:true});
-          }
-          const result = await allusers.insertOne(newUser);
-          res.send(result);
+        const newUser = req.body;
+        const userEmail = newUser.email;
+        const isAvilable = await allusers.findOne({ email: userEmail });
+        if (isAvilable) {
+          return res.send({ avilable: true });
+        }
+        const result = await allusers.insertOne(newUser);
+        res.send(result);
       } catch (error) {
-         console.log(`Create new user route working failed!`) 
+        console.log(`Create new user route working failed!`);
       }
-  });
-
-
-
-
-
-
-
-
-
-
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -88,35 +84,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-app.get('/', (req,res)=>{
-    res.send('FrameFusion website server is running well');
+app.get("/", (req, res) => {
+  res.send("FrameFusion website server is running well");
 });
 
-
-
-
-
-
-app.listen(port, ()=>{
-    console.log(`This server running with ${port}`)
-})
+app.listen(port, () => {
+  console.log(`This server running with ${port}`);
+});
