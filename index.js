@@ -52,6 +52,23 @@ async function run() {
     });
 
 
+    // create new user route by google
+    app.post('/createnewuserbygoogle',async(req,res)=>{
+      try {
+          const newUser = req.body;
+          const userEmail = newUser.email;
+          const isAvilable = await allusers.findOne({email: userEmail});
+          if(isAvilable){
+            return res.send({avilable:true});
+          }
+          const result = await allusers.insertOne(newUser);
+          res.send(result);
+      } catch (error) {
+         console.log(`Create new user route working failed!`) 
+      }
+  });
+
+
 
 
 
