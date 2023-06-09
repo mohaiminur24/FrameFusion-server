@@ -29,12 +29,22 @@ async function run() {
     await client.connect();
 
     // My activity from here
-
     const FrameFusion = client.db("FrameFusion");
     const allusers = FrameFusion.collection("allusers");
     const classes = FrameFusion.collection("classes");
 
     // Route from here
+
+    // load user route is here
+    app.get("/loadcurrentuser", async(req,res)=>{
+      try {
+        const userEmail = req.query.email;
+        const result = await allusers.findOne({email: userEmail});
+        res.send(result);
+      } catch (error) {
+        console.log("user role route is not working")
+      }
+    })
 
     //get sigle class by class id 
     app.get("/singleclassload", async(req,res)=>{
