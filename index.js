@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
 // middlewere is here
@@ -32,16 +32,71 @@ async function run() {
 
     const FrameFusion = client.db("FrameFusion");
     const allusers = FrameFusion.collection("allusers");
+    const classes = FrameFusion.collection("classes");
 
     // Route from here
 
-    //Get all instractor route is here
-    app.get("/allinstractor", async(req, res) => {
+    //get sigle class by class id 
+    app.get("/singleclassload", async(req,res)=>{
       try {
-        const result = await allusers.find({role: "instractor"}).toArray();
+        const id = req.query.id;
+        const result = await classes.findOne({_id: new ObjectId(id)});
+        res.send(result);
+      } catch (error) {
+        console.log("single class loader route is not working")
+      }
+    });
+
+    //Get personal class by instractor email route is here
+    app.get("/instractorclass", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const result = await classes.find({ instractorEmail: email }).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log("instractor class route is not working");
+      }
+    });
+
+    //Get all instractor route is here
+    app.get("/allinstractor", async (req, res) => {
+      try {
+        const result = await allusers.find({ role: "instractor" }).toArray();
         res.send(result);
       } catch (error) {
         console.log("all instractor route is not working");
+      }
+    });
+
+    // update single class route is here
+    app.post("/updateclassbyinstractor", async(req,res)=>{
+      try {
+        const id = req.query.id;
+        const {data} = req.body;
+        const query = {_id: new ObjectId(id)};
+        const updatedocument = {
+          $set:{
+            ClassName: data.ClassName,
+            aviableseats: parseFloat(data.aviableseats),
+            price: parseFloat(data.price),
+            thumbnail: data.thumbnail
+          }
+        }
+        const result = await classes.updateOne(query,updatedocument);
+        res.send(result);
+      } catch (error) {
+        console.log('update single class by instractor is not working')
+      }
+    })
+
+    // Delete single class route is here
+    app.delete("/deleteclass", async(req,res)=>{
+      try {
+        const id = req.query.id;
+        const result = await classes.deleteOne({_id: new ObjectId(id)});
+        res.send(result);
+      } catch (error) {
+        console.log('Delete route is not working!')
       }
     });
 
@@ -53,6 +108,17 @@ async function run() {
         res.send(result);
       } catch (error) {
         console.log(`Create new user route working failed!`);
+      }
+    });
+
+    // Create new class route is here
+    app.post("/createnewclass", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await classes.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        console.log("Create new user route working failed");
       }
     });
 
