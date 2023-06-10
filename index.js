@@ -13,19 +13,23 @@ app.use(express.json());
 // MongoDB connection from here
 //................................
 
-const verifyToken =(req,res, next)=>{
+const verifyToken = (req, res, next) => {
   const authorize = req.headers.authorize;
-  if(!authorize){
-      return res.status(401).send({error:true, message: "Unauthorized Access!"})
-  };
-  const token = authorize.split(' ')[1];
-  jwt.verify(token, process.env.DB_Access_token, (error, decoded)=>{
-    if(error){
-      return res.status(403).send({error:true, message: "Invalid Token access"});
+  if (!authorize) {
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized Access!" });
+  }
+  const token = authorize.split(" ")[1];
+  jwt.verify(token, process.env.DB_Access_token, (error, decoded) => {
+    if (error) {
+      return res
+        .status(403)
+        .send({ error: true, message: "Invalid Token access" });
     }
-    req.decoded = decoded
+    req.decoded = decoded;
     next();
-  })
+  });
 };
 
 const uri = `mongodb+srv://${process.env.mongodb_user}:${process.env.mongodb_pass}@cluster0.85env82.mongodb.net/?retryWrites=true&w=majority`;
@@ -63,8 +67,8 @@ async function run() {
       next();
     };
 
-     // verfify Instractor
-     const verifyinstractor = async (req, res, next) => {
+    // verfify Instractor
+    const verifyinstractor = async (req, res, next) => {
       const tokenEmail = req.decoded.email;
       const result = await allusers.findOne({ email: tokenEmail });
       if (result.role !== "instractor") {
@@ -75,8 +79,8 @@ async function run() {
       next();
     };
 
-     // verfify Student
-     const verifystudent = async (req, res, next) => {
+    // verfify Student
+    const verifystudent = async (req, res, next) => {
       const tokenEmail = req.decoded.email;
       const result = await allusers.findOne({ email: tokenEmail });
       if (result.role !== "student") {
@@ -87,15 +91,36 @@ async function run() {
       next();
     };
 
-    // Load all classes route is here
-    app.get('/loadallclasses', async(req,res)=>{
+    // Loadalluser for admin panel
+    app.get(
+      "/allusermanagement",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
         try {
-          const result = await classes.find().toArray();
+          const result = await allusers.find().toArray();
           res.send(result);
         } catch (error) {
-          
+          console.log("all user load for admin route is not working!");
         }
-    })
+      }
+    );
+
+    // Load all classes route is here
+    app.get("/loadallclasses",verifyToken,verifyAdmin, async (req, res) => {
+      try {
+        const result = await classes.find().toArray();
+        res.send(result);
+      } catch (error) {}
+    });
+    // Load all approve classes route is here
+    app.get("/loadallapproveclasses", async (req, res) => {
+      try {
+        const query = {status: "Approve"}
+        const result = await classes.find(query).toArray();
+        res.send(result);
+      } catch (error) {}
+    });
 
     // load user route is here
     app.get("/loadcurrentuser", async (req, res) => {
@@ -120,7 +145,7 @@ async function run() {
     });
 
     //Get personal class by instractor email route is here
-    app.get("/instractorclass",verifyToken, async (req, res) => {
+    app.get("/instractorclass", verifyToken, async (req, res) => {
       try {
         const email = req.query.email;
         const result = await classes.find({ instractorEmail: email }).toArray();
@@ -140,6 +165,69 @@ async function run() {
       }
     });
 
+    // handle user role for admin panel route is here
+    app.post("/handleuserrole", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const id = req.query.id;
+        const newrole = req.query.role;
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: {
+            role: newrole,
+          },
+        };
+        const result = await allusers.updateOne(query, update);
+        res.send(result);
+      } catch (error) {
+        console.log("update user role by admin route is not working!");
+      }
+    });
+
+    // Classes status change by admin route is here
+    app.post(
+      "/changeclassstatus",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const data = req.body;
+          const query = { _id: new ObjectId(data.id) };
+          const updateDoucment = {
+            $set: {
+              status: data.status,
+            },
+          };
+          const result = await classes.updateOne(query, updateDoucment);
+          res.send(result);
+        } catch (error) {
+          console.log("Change class status by admin is not working!");
+        }
+      }
+    );
+
+    // class feedback post by admin route is here
+    app.post(
+      "/setfeedbackadmin",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const feedback = req.query.Feedback;
+          const id = req.query.id;
+          const query = { _id: new ObjectId(id) };
+          const updateDoucment = {
+            $set: {
+              Feedback: feedback,
+            },
+          };
+          const result = await classes.updateOne(query, updateDoucment);
+          res.send(result);
+        } catch (error) {
+          console.log("set Feedback by admin route is not working!");
+        }
+      }
+    );
+
     // create jwt token route is here
     app.post("/jwt", (req, res) => {
       try {
@@ -155,36 +243,46 @@ async function run() {
     });
 
     // update single class route is here
-    app.post("/updateclassbyinstractor",verifyToken,verifyinstractor, async (req, res) => {
-      try {
-        const id = req.query.id;
-        const { data } = req.body;
-        const query = { _id: new ObjectId(id) };
-        const updatedocument = {
-          $set: {
-            ClassName: data.ClassName,
-            aviableseats: parseFloat(data.aviableseats),
-            price: parseFloat(data.price),
-            thumbnail: data.thumbnail,
-          },
-        };
-        const result = await classes.updateOne(query, updatedocument);
-        res.send(result);
-      } catch (error) {
-        console.log("update single class by instractor is not working");
+    app.post(
+      "/updateclassbyinstractor",
+      verifyToken,
+      verifyinstractor,
+      async (req, res) => {
+        try {
+          const id = req.query.id;
+          const { data } = req.body;
+          const query = { _id: new ObjectId(id) };
+          const updatedocument = {
+            $set: {
+              ClassName: data.ClassName,
+              aviableseats: parseFloat(data.aviableseats),
+              price: parseFloat(data.price),
+              thumbnail: data.thumbnail,
+            },
+          };
+          const result = await classes.updateOne(query, updatedocument);
+          res.send(result);
+        } catch (error) {
+          console.log("update single class by instractor is not working");
+        }
       }
-    });
+    );
 
     // Delete single class route is here
-    app.delete("/deleteclass",verifyToken,verifyinstractor, async (req, res) => {
-      try {
-        const id = req.query.id;
-        const result = await classes.deleteOne({ _id: new ObjectId(id) });
-        res.send(result);
-      } catch (error) {
-        console.log("Delete route is not working!");
+    app.delete(
+      "/deleteclass",
+      verifyToken,
+      verifyinstractor,
+      async (req, res) => {
+        try {
+          const id = req.query.id;
+          const result = await classes.deleteOne({ _id: new ObjectId(id) });
+          res.send(result);
+        } catch (error) {
+          console.log("Delete route is not working!");
+        }
       }
-    });
+    );
 
     //Create new user function is here
     app.post("/createnewuser", async (req, res) => {
@@ -198,15 +296,20 @@ async function run() {
     });
 
     // Create new class route is here
-    app.post("/createnewclass",verifyToken,verifyinstractor, async (req, res) => {
-      try {
-        const newClass = req.body;
-        const result = await classes.insertOne(newClass);
-        res.send(result);
-      } catch (error) {
-        console.log("Create new user route working failed");
+    app.post(
+      "/createnewclass",
+      verifyToken,
+      verifyinstractor,
+      async (req, res) => {
+        try {
+          const newClass = req.body;
+          const result = await classes.insertOne(newClass);
+          res.send(result);
+        } catch (error) {
+          console.log("Create new user route working failed");
+        }
       }
-    });
+    );
 
     // create new user route by google
     app.post("/createnewuserbygoogle", async (req, res) => {
