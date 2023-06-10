@@ -87,6 +87,16 @@ async function run() {
       next();
     };
 
+    // Load all classes route is here
+    app.get('/loadallclasses', async(req,res)=>{
+        try {
+          const result = await classes.find().toArray();
+          res.send(result);
+        } catch (error) {
+          
+        }
+    })
+
     // load user route is here
     app.get("/loadcurrentuser", async (req, res) => {
       try {
