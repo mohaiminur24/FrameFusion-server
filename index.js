@@ -3,12 +3,14 @@ const app = express();
 const cors = require("cors");
 var jwt = require("jsonwebtoken");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.Payment_secrect_key);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
 // middlewere is here
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
 // MongoDB connection from here
 //................................
@@ -52,6 +54,7 @@ async function run() {
     const FrameFusion = client.db("FrameFusion");
     const allusers = FrameFusion.collection("allusers");
     const classes = FrameFusion.collection("classes");
+    const Enrollclasses = FrameFusion.collection("enrollclasses");
 
     // Route from here
 
@@ -107,7 +110,7 @@ async function run() {
     );
 
     // Load all classes route is here
-    app.get("/loadallclasses",verifyToken,verifyAdmin, async (req, res) => {
+    app.get("/loadallclasses", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const result = await classes.find().toArray();
         res.send(result);
@@ -116,7 +119,7 @@ async function run() {
     // Load all approve classes route is here
     app.get("/loadallapproveclasses", async (req, res) => {
       try {
-        const query = {status: "Approve"}
+        const query = { status: "Approve" };
         const result = await classes.find(query).toArray();
         res.send(result);
       } catch (error) {}
@@ -326,6 +329,31 @@ async function run() {
         console.log(`Create new user route working failed!`);
       }
     });
+
+    // create payment route is here
+    app.post(
+      "/createpaymentintent",
+      verifyToken,
+      verifystudent,
+      async (req, res) => {
+        try {
+          const { price } = req.body;
+          const amounts = parseInt(price * 100);
+          console.log(amounts);
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: amounts,
+            currency: "usd",
+            payment_method_types: ["card"],
+          });
+          console.log(paymentIntent);
+          res.send({
+            clientSecret: paymentIntent.client_secret,
+          });
+        } catch (error) {
+          console.log('payment intent route is not working!')
+        }
+      }
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
