@@ -54,7 +54,7 @@ async function run() {
     const FrameFusion = client.db("FrameFusion");
     const allusers = FrameFusion.collection("allusers");
     const classes = FrameFusion.collection("classes");
-    const Enrollclasses = FrameFusion.collection("enrollclasses");
+    const paymentHistory = FrameFusion.collection("payhistory");
 
     // Route from here
 
@@ -339,21 +339,56 @@ async function run() {
         try {
           const { price } = req.body;
           const amounts = parseInt(price * 100);
-          console.log(amounts);
           const paymentIntent = await stripe.paymentIntents.create({
             amount: amounts,
             currency: "usd",
             payment_method_types: ["card"],
           });
-          console.log(paymentIntent);
           res.send({
             clientSecret: paymentIntent.client_secret,
           });
         } catch (error) {
-          console.log('payment intent route is not working!')
+          console.log("payment intent route is not working!");
         }
       }
     );
+
+    // add student payment history route is here
+    app.post(
+      "/createpaymenthistory",
+      verifyToken,
+      verifystudent,
+      async (req, res) => {
+        try {
+          const data = req.body;
+          const result = await paymentHistory.insertOne(data);
+          res.send(result);
+        } catch (error) {
+          console.log('create payment history is not working!')
+        }
+      }
+    );
+
+    // update class after payment route is here
+    app.post('/updateclassafterpayment', verifyToken,verifystudent,async(req,res)=>{
+      try {
+        const id = req.query.id;
+        const updateclass =await classes.findOne({_id: new ObjectId(id)});
+        const newseats = updateclass.aviableseats -1;
+        const newtotalstudent = updateclass.TotalStudent +1;
+        const query = {_id: new ObjectId(id)};
+        const updatedocument = {
+          $set:{
+            aviableseats: newseats,
+            TotalStudent: newtotalstudent
+          }
+        };
+        const result = await classes.updateOne(query,updatedocument);
+        res.send(result)
+      } catch (error) {
+        console.log("update class after paying is not working!")
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
