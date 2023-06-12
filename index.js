@@ -94,6 +94,20 @@ async function run() {
       next();
     };
 
+    //Popular class route is here
+    app.get("/popularclass", async (req, res) => {
+      try {
+        const result = await classes
+          .find()
+          .limit(6)
+          .sort({ TotalStudent: -1 })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.log("popular class route is not working!");
+      }
+    });
+
     // Loadalluser for admin panel
     app.get(
       "/allusermanagement",
@@ -364,29 +378,53 @@ async function run() {
           const result = await paymentHistory.insertOne(data);
           res.send(result);
         } catch (error) {
-          console.log('create payment history is not working!')
+          console.log("create payment history is not working!");
         }
       }
     );
 
     // update class after payment route is here
-    app.post('/updateclassafterpayment', verifyToken,verifystudent,async(req,res)=>{
+    app.post(
+      "/updateclassafterpayment",
+      verifyToken,
+      verifystudent,
+      async (req, res) => {
+        try {
+          const id = req.query.id;
+          const updateclass = await classes.findOne({ _id: new ObjectId(id) });
+          const newseats = updateclass.aviableseats - 1;
+          const newtotalstudent = updateclass.TotalStudent + 1;
+          const query = { _id: new ObjectId(id) };
+          const updatedocument = {
+            $set: {
+              aviableseats: newseats,
+              TotalStudent: newtotalstudent,
+            },
+          };
+          const result = await classes.updateOne(query, updatedocument);
+          res.send(result);
+        } catch (error) {
+          console.log("update class after paying is not working!");
+        }
+      }
+    );
+
+    // update instractor after payment student
+    app.patch("/updatestudentinstractor", async (req, res) => {
       try {
-        const id = req.query.id;
-        const updateclass =await classes.findOne({_id: new ObjectId(id)});
-        const newseats = updateclass.aviableseats -1;
-        const newtotalstudent = updateclass.TotalStudent +1;
-        const query = {_id: new ObjectId(id)};
-        const updatedocument = {
-          $set:{
-            aviableseats: newseats,
-            TotalStudent: newtotalstudent
-          }
+        const instractoremail = req.query.email;
+        const instractor = await allusers.findOne({ email: instractoremail });
+        const query = { email: instractoremail };
+        const option = { upset: true };
+        const updatestudent = {
+          $set: {
+            student: instractor.student + 1,
+          },
         };
-        const result = await classes.updateOne(query,updatedocument);
-        res.send(result)
+        const result = await allusers.updateOne(query, updatestudent, option);
+        res.send(result);
       } catch (error) {
-        console.log("update class after paying is not working!")
+        console.log("update instractor student route is not working!");
       }
     });
 
