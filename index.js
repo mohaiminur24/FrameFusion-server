@@ -55,6 +55,7 @@ async function run() {
     const allusers = FrameFusion.collection("allusers");
     const classes = FrameFusion.collection("classes");
     const paymentHistory = FrameFusion.collection("payhistory");
+    const instractorMessage = FrameFusion.collection("InstractorMessage");
 
     // Route from here
 
@@ -316,6 +317,17 @@ async function run() {
         }
       }
     );
+
+    // instractor message post route is here
+    app.post('/instractormessage',verifyToken,verifystudent, async(req,res)=>{
+      try {
+        const {data} = req.body;
+        const result = await instractorMessage.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        console.log('instractor message post route is not working!')
+      }
+    });
 
     // Delete single class route is here
     app.delete(
