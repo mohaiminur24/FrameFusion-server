@@ -94,6 +94,24 @@ async function run() {
       next();
     };
 
+    //get user payment history route is here
+    app.get(
+      "/userpaymenthistory",
+      verifyToken,
+      verifystudent,
+      async (req, res) => {
+        try {
+          const studentEmail = req.query.email;
+          const result = await paymentHistory
+            .find({ payEmail: studentEmail })
+            .toArray();
+          res.send(result);
+        } catch (error) {
+          console.log("userpayment histroy route is not working!");
+        }
+      }
+    );
+
     //Popular class route is here
     app.get("/popularclass", async (req, res) => {
       try {
@@ -109,10 +127,10 @@ async function run() {
     });
 
     // popular instractor route is here
-    app.get('/popularinstractor', async(req,res)=>{
+    app.get("/popularinstractor", async (req, res) => {
       try {
         const result = await allusers
-          .find({role:'instractor'})
+          .find({ role: "instractor" })
           .limit(6)
           .sort({ student: -1 })
           .toArray();
@@ -120,7 +138,7 @@ async function run() {
       } catch (error) {
         console.log("popular class route is not working!");
       }
-    })
+    });
 
     // Loadalluser for admin panel
     app.get(
