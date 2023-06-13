@@ -205,6 +205,17 @@ async function run() {
       }
     });
 
+    // instractor message get route is here
+    app.get('/instractormessage',verifyToken,verifyinstractor, async(req,res)=>{
+      try {
+        const instractorEmail = req.query.email;
+        const result = await instractorMessage.find({to:instractorEmail}).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log('instractor message get route is not working!')
+      }
+    })
+
     //Get all instractor route is here
     app.get("/allinstractor", async (req, res) => {
       try {
